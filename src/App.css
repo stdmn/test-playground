@@ -1,0 +1,127 @@
+@import "../node_modules/react-vis/dist/style.css";
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 80px;
+}
+
+.App-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: white;
+}
+
+.App-title {
+  font-size: 1.5em;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+.hint {
+  padding:0;
+  max-width: 140px;
+  margin:0;
+  text-align:left;
+}
+
+.rv-hint--horizontalAlign-left.rv-hint--verticalAlign-bottom > .triangle {
+  left: 20px;
+  bottom: -15px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+
+.rv-hint--horizontalAlign-left.rv-hint--verticalAlign-bottom > .triangle::after {
+  content: "";
+  position: absolute;
+  transform: scale(1,-1);
+  top: -15px;
+  right: 20px;
+  height:15px;
+  width:24px;
+	background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMjQgMTUiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDI0IDE1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjxwb2x5Z29uIGZpbGw9IiNFQkVCRUIiIGNsYXNzPSJzdDAiIHBvaW50cz0iMCwwIDEyLjEsMCAyNCwxNSAiLz48L3N2Zz4=);
+  display: block;
+}
+
+.rv-hint--horizontalAlign-right.rv-hint--verticalAlign-bottom > .triangle {
+  right: 20px;
+  bottom: -15px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+.rv-hint--horizontalAlign-right.rv-hint--verticalAlign-bottom > .triangle::after {
+  content: "";
+  position: absolute;
+  transform: scale(-1,-1);
+  top: -15px;
+  left: 20px;
+  height:15px;
+  width:24px;
+	background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMjQgMTUiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDI0IDE1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjxwb2x5Z29uIGZpbGw9IiNFQkVCRUIiIGNsYXNzPSJzdDAiIHBvaW50cz0iMCwwIDEyLjEsMCAyNCwxNSAiLz48L3N2Zz4=);
+  display: block;
+}
+
+.rv-hint--horizontalAlign-left.rv-hint--verticalAlign-top > .triangle {
+  left: 20px;
+  top: -15px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+
+.rv-hint--horizontalAlign-left.rv-hint--verticalAlign-top > .triangle::after {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  right: 20px;
+  height:15px;
+  width:24px;
+	background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMjQgMTUiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDI0IDE1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjxwb2x5Z29uIGZpbGw9IiNFQkVCRUIiIGNsYXNzPSJzdDAiIHBvaW50cz0iMCwwIDEyLjEsMCAyNCwxNSAiLz48L3N2Zz4=);
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25))
+}
+
+.rv-hint--horizontalAlign-right.rv-hint--verticalAlign-top > .triangle {
+  right:20px;
+  top: -15px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+
+}
+
+.rv-hint--horizontalAlign-right.rv-hint--verticalAlign-top > .triangle::after {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  left: 20px;
+  height:15px;
+  width:24px;
+  transform: scale(-1,1);
+	background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMjQgMTUiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDI0IDE1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjxwb2x5Z29uIGZpbGw9IiNFQkVCRUIiIGNsYXNzPSJzdDAiIHBvaW50cz0iMCwwIDEyLjEsMCAyNCwxNSAiLz48L3N2Zz4=);
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25))
+
+}
+
+.filter-multiselect:first-child {
+  margin-top: 20px;
+}
+
+.filter-multiselect:last-child {
+  padding-bottom: 0.5em !important;
+}
