@@ -10,6 +10,7 @@ export default class App extends Component {
     }
 
 render () {
+    console.log(document.cookie)
     return (
         <div style ={{height:200, width: 300, backgroundColor:'#ccc'}}>
             Hello World!
