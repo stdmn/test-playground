@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// import window from 'global/window';
+import window from 'global/window';
 
 /**
  * Generate a hash string based on number of character

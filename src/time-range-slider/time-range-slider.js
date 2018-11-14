@@ -18,232 +18,297 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import moment from 'moment';
-import * as d3 from 'd3';
-// import {requestAnimationFrame, cancelAnimationFrame} from 'global/window';
-import classnames from 'classnames';
-import throttle from 'lodash.throttle';
-import styled from 'styled-components';
-import {createSelector} from 'reselect';
-import {Play, Reset, Pause, Minus} from './icons';
-import {SelectTextBold, SelectText, Button, ButtonGroup} from './styled-components.js';
-import {getTimeWidgetTitleFormatter, BASE_SPEED} from './utils/filter-utils';
-import RangeSlider from './range-slider';
-import TimeSliderMarker from './time-slider-marker';
+import React, { Component } from "react";
+import PropTypes from "prop-types";
+import moment from "moment";
+import { requestAnimationFrame, cancelAnimationFrame } from "global/window";
+import classnames from "classnames";
+import throttle from "lodash.throttle";
+import styled from "styled-components";
+import * as d3 from "d3";
+import { DateTime } from "luxon";
+import { createSelector } from "reselect";
+import { Play, Reset, Pause, Minus } from "./icons";
+import { SelectTextBold, SelectText, Button, ButtonGroup } from "./styled-components";
+import { getTimeWidgetTitleFormatter, BASE_SPEED } from "./utils/filter-utils";
+import RangeSlider from "./range-slider";
+import TimeSliderMarker from "./time-slider-marker";
+import { theme } from "./styles/theme";
 
-const defaultTimeFormat = val => moment.utc(val).format('MM/DD/YY hh:mma');
+const defaultTimeFormat = val => moment.utc(val).format("MM/DD/YY hh:mma");
 const animationControlWidth = 140;
 
 const StyledSliderContainer = styled.div`
-  margin-top: ${props => props.isEnlarged ? '12px' : '0px'};
-  align-items: flex-end;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+	margin-top: ${props => (props.isEnlarged ? "12px" : "0px")};
+	align-items: flex-end;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
 `;
 
 export default class TimeRangeSlider extends Component {
-  static propTypes = {
-    onChange: PropTypes.func.isRequired,
-    domain: PropTypes.arrayOf(PropTypes.number).isRequired,
-    value: PropTypes.arrayOf(PropTypes.number).isRequired,
-    step: PropTypes.number.isRequired,
-    plotType: PropTypes.string,
-    histogram: PropTypes.arrayOf(PropTypes.any),
-    lineChart: PropTypes.object,
-    toggleAnimation: PropTypes.func.isRequired,
-    isAnimatable: PropTypes.bool,
-    isEnlarged: PropTypes.bool,
-    speed: PropTypes.number
-  };
+	static propTypes = {
+		onChange: PropTypes.func.isRequired,
+		domain: PropTypes.arrayOf(PropTypes.number).isRequired,
+		value: PropTypes.arrayOf(PropTypes.number).isRequired,
+		data: PropTypes.arrayOf(PropTypes.number).isRequired,
+		step: PropTypes.number.isRequired,
+		plotType: PropTypes.string,
+		histogram: PropTypes.arrayOf(PropTypes.any),
+		lineChart: PropTypes.object,
+		toggleAnimation: PropTypes.func.isRequired,
+		isAnimatable: PropTypes.bool,
+		isEnlarged: PropTypes.bool,
+		speed: PropTypes.number
+	};
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      isAnimating: false,
-      width: 288
-    };
-    this._animation = null;
-    this._sliderThrottle = throttle((...value) => this.props.onChange(...value), 20);
-  }
+	constructor(props) {
+		super(props);
+		this.state = {
+			isAnimating: false,
+			width: 288
+		};
+		this._animation = null;
+		this._sliderThrottle = throttle((...value) => this.props.onChange(...value), 20);
+	}
 
-  componentDidUpdate() {
-    if (!this._animation && this.state.isAnimating) {
-      this._animation = requestAnimationFrame(this._nextFrame);
-    }
-  }
+	componentDidUpdate() {
+		if (!this._animation && this.state.isAnimating) {
+			this._animation = requestAnimationFrame(this._nextFrame);
+		}
+	}
 
-  domainSelector = props => props.domain;
-  titleFormatter = createSelector(this.domainSelector, domain =>
-    getTimeWidgetTitleFormatter(domain)
-  );
+	createHistogramFromValues = () => {
+		const { data, domain } = this.props;
+		const startDate = DateTime.fromMillis(domain[0]);
 
-  _sliderUpdate = args => {
-    this._sliderThrottle.cancel();
-    this._sliderThrottle(args);
-  };
+		const endDate = DateTime.fromMillis(domain[1]);
+		const duration = endDate.diff(startDate, "months");
 
-  _resetAnimation = () => {
-    const {domain, value} = this.props;
-    const value0 = domain[0];
-    const value1 = value0 + value[1] - value[0];
-    this.props.onChange([value0, value1]);
-  };
+		const diffInMonths = duration.values.months;
+		const diffInDays = duration.as("days");
 
-  _startAnimation = () => {
-    this._pauseAnimation();
-    this.props.toggleAnimation();
-    this.setState({isAnimating: true});
-  };
+		let numBins;
+		if (diffInMonths > 1200) {
+			numBins = diffInMonths / 48;
+		} else if (diffInMonths > 600) {
+			numBins = diffInMonths / 24;
+		} else if (diffInMonths > 300) {
+			numBins = diffInMonths / 12;
+		} else if (diffInMonths > 150) {
+			numBins = diffInMonths / 6;
+		} else if (diffInMonths > 90) {
+			numBins = diffInMonths / 3;
+		} else if (diffInMonths > 36) {
+			numBins = diffInMonths;
+		} else if (diffInMonths > 12) {
+			numBins = diffInDays / 14;
+		} else {
+			numBins = diffInDays / 7;
+		}
 
-  _pauseAnimation = () => {
-    if (this._animation) {
-      cancelAnimationFrame(this._animation);
-      this.props.toggleAnimation();
-      this._animation = null;
-    }
-    this.setState({isAnimating: false});
-  };
+		const interval = (domain[1] - domain[0]) / numBins;
+		const ticks = [];
+		for (let i = 0; i <= Math.ceil(numBins); i++) {
+			ticks.push(i * interval + domain[0]);
+		}
 
-  _nextFrame = () => {
-    this._animation = null;
+		// construct x-axis scale
+		const x = d3.scaleLinear().domain(domain);
 
-    const {domain, value} = this.props;
-    const speed = ((domain[1] - domain[0]) / BASE_SPEED) * this.props.speed;
+		const hist = d3
+			.histogram()
+			.domain([domain[0] + 1, domain[1] - 1])
+			.thresholds(ticks);
 
-    // loop when reaches the end
-    const value0 = value[1] + speed > domain[1] ? domain[0] : value[0] + speed;
-    const value1 = value0 + value[1] - value[0];
-    this.props.onChange([value0, value1]);
-  };
+		const fullHist = hist(data).map(bin => {
+			return { x0: bin.x0, x1: bin.x1, count: bin.length };
+		});
 
-  render() {
-    const {domain, value, isEnlarged} = this.props;
-    const {isAnimating} = this.state;
+		return fullHist;
+	};
 
-    return (
-      <div className="time-range-slider">
-        <TimeTitle
-          timeFormat={this.titleFormatter(this.props)}
-          value={value}
-          isEnlarged={isEnlarged}
-        />
-        <StyledSliderContainer
-          className="time-range-slider__container"
-          isEnlarged={isEnlarged}>
-          {isEnlarged ? <AnimationControls
-            isAnimatable={this.props.isAnimatable}
-            isEnlarged={isEnlarged}
-            isAnimating={isAnimating}
-            pauseAnimation={this._pauseAnimation}
-            resetAnimation={this._resetAnimation}
-            startAnimation={this._startAnimation}
-          /> : null}
-          <div style={{width: isEnlarged ? `calc(100% - ${animationControlWidth}px)` : '100%'}}>
-            <RangeSlider
-              range={domain}
-              value0={value[0]}
-              value1={value[1]}
-              histogram={this.props.histogram}
-              lineChart={this.props.lineChart}
-              plotType={this.props.plotType}
-              isEnlarged={isEnlarged}
-              showInput={false}
-              step={this.props.step}
-              onChange={this._sliderUpdate}
-              xAxis={TimeSliderMarker}
-            />
-          </div>
-        </StyledSliderContainer>
-      </div>
-    );
-  }
+	domainSelector = props => props.domain;
+	titleFormatter = createSelector(this.domainSelector, domain =>
+		getTimeWidgetTitleFormatter(domain)
+	);
+
+	_sliderUpdate = args => {
+		this._sliderThrottle.cancel();
+		this._sliderThrottle(args);
+	};
+
+	_resetAnimation = () => {
+		const { domain, value } = this.props;
+		const value0 = domain[0];
+		const value1 = value0 + value[1] - value[0];
+		this.props.onChange([value0, value1]);
+	};
+
+	_startAnimation = () => {
+		this._pauseAnimation();
+		this.props.toggleAnimation();
+		this.setState({ isAnimating: true });
+	};
+
+	_pauseAnimation = () => {
+		if (this._animation) {
+			cancelAnimationFrame(this._animation);
+			this.props.toggleAnimation();
+			this._animation = null;
+		}
+		this.setState({ isAnimating: false });
+	};
+
+	_nextFrame = () => {
+		this._animation = null;
+
+		const { domain, value } = this.props;
+		const speed = ((domain[1] - domain[0]) / BASE_SPEED) * this.props.speed;
+
+		// loop when reaches the end
+		const value0 = value[1] + speed > domain[1] ? domain[0] : value[0] + speed;
+		const value1 = value0 + value[1] - value[0];
+		this.props.onChange([value0, value1]);
+	};
+
+	render() {
+		const { domain, value, isEnlarged, data } = this.props;
+		const { isAnimating } = this.state;
+
+		const histogramData = this.createHistogramFromValues();
+
+		return (
+			<div className="time-range-slider">
+				<TimeTitle
+					timeFormat={this.titleFormatter(this.props)}
+					value={value}
+					isEnlarged={isEnlarged}
+				/>
+				<StyledSliderContainer className="time-range-slider__container" isEnlarged={isEnlarged}>
+					{isEnlarged ? (
+						<AnimationControls
+							isAnimatable={this.props.isAnimatable}
+							isEnlarged={isEnlarged}
+							isAnimating={isAnimating}
+							pauseAnimation={this._pauseAnimation}
+							resetAnimation={this._resetAnimation}
+							startAnimation={this._startAnimation}
+						/>
+					) : null}
+					<div style={{ width: isEnlarged ? `calc(100% - ${animationControlWidth}px)` : "100%" }}>
+						<RangeSlider
+							range={domain}
+							value0={value[0]}
+							value1={value[1]}
+							histogram={histogramData}
+							lineChart={this.props.lineChart}
+							plotType={this.props.plotType}
+							isEnlarged={isEnlarged}
+							showInput={false}
+							step={this.props.step}
+							inputTheme={theme}
+							onChange={this._sliderUpdate}
+							xAxis={TimeSliderMarker}
+						/>
+					</div>
+				</StyledSliderContainer>
+			</div>
+		);
+	}
 }
 
 const TimeValueWrapper = styled.div`
-  display: flex;
-  height: ${props => props.theme.secondaryInputHeight};
-  align-items: center;
-  font-size: 11px;
-  justify-content: ${props => props.isEnlarged ? 'center' : 'space-between'};
-  color: ${props => props.theme.labelColor};
+	display: flex;
+	height: ${theme.secondaryInputHeight};
+	align-items: center;
+	font-size: 11px;
+	justify-content: ${props => (props.isEnlarged ? "center" : "space-between")};
+	color: ${theme.labelColor};
 
-  .horizontal-bar {
-    padding: 0 12px;
-  }
+	.horizontal-bar {
+		padding: 0 12px;
+		display: flex;
+		align-items: center;
+	}
 
-  .time-value {
-    display: flex;
-    flex-direction: ${props => props.isEnlarged ? 'row' : 'column'};
-    align-items: flex-start;
-  }
+	.time-value {
+		display: flex;
+		flex-direction: ${props => (props.isEnlarged ? "row" : "column")};
+		align-items: flex-start;
+	}
 
-  .time-value:last-child {
-    align-items: flex-end;
-  }
+	.time-value:last-child {
+		align-items: flex-end;
+	}
 `;
 
-const TimeTitle = ({value, isEnlarged, timeFormat = defaultTimeFormat}) => (
-  <TimeValueWrapper isEnlarged={isEnlarged}>
-    <TimeValue key={0} value={moment.utc(value[0]).format(timeFormat)} split={!isEnlarged}/>
-    {isEnlarged ? (
-      <div className="horizontal-bar">
-        <Minus height="12px"/>
-      </div>
-    ) : null}
-    <TimeValue key={1} value={moment.utc(value[1]).format(timeFormat)} split={!isEnlarged}/>
-  </TimeValueWrapper>
+const TimeTitle = ({ value, isEnlarged, timeFormat = defaultTimeFormat }) => (
+	<TimeValueWrapper isEnlarged={isEnlarged}>
+		<TimeValue key={0} value={moment.utc(value[0]).format(timeFormat)} split={!isEnlarged} />
+		{isEnlarged ? (
+			<div className="horizontal-bar">
+				<Minus height="12px" />
+			</div>
+		) : null}
+		<TimeValue key={1} value={moment.utc(value[1]).format(timeFormat)} split={!isEnlarged} />
+	</TimeValueWrapper>
 );
 
-const TimeValue = ({value, split}) => (
-  // render two lines if not enlarged
-  <div className="time-value">
-    {split ? value.split(' ').map((v, i) => (
-      <div key={i}>
-        {i === 0 ? <SelectText>{v}</SelectText> :
-        <SelectTextBold>{v}</SelectTextBold>}
-      </div>
-    )) : <SelectTextBold>{value}</SelectTextBold>}
-  </div>
+const TimeValue = ({ value, split }) => (
+	// render two lines if not enlarged
+	<div className="time-value">
+		{split ? (
+			value
+				.split(" ")
+				.map((v, i) => (
+					<div key={i}>
+						{i === 0 ? <SelectText>{v}</SelectText> : <SelectTextBold>{v}</SelectTextBold>}
+					</div>
+				))
+		) : (
+			<SelectTextBold>{value}</SelectTextBold>
+		)}
+	</div>
 );
 
 const StyledAnimationControls = styled.div`
-  margin-bottom: 12px;
-  margin-right: 42px;
+	margin-bottom: 12px;
+	margin-right: 42px;
 
-  &.disabled {
-    opacity: 0.4;
-    pointer-events: none;
-  }
+	&.disabled {
+		opacity: 0.4;
+		pointer-events: none;
+	}
 `;
 
 const IconButton = Button.extend`
-  svg {
-    margin: 0 6px;
-  }
+	svg {
+		margin: 0 6px;
+	}
 `;
 
 const AnimationControls = ({
-  isAnimatable,
-  isAnimating,
-  pauseAnimation,
-  resetAnimation,
-  startAnimation
+	isAnimatable,
+	isAnimating,
+	pauseAnimation,
+	resetAnimation,
+	startAnimation
 }) => (
-  <StyledAnimationControls
-    className={classnames('time-range-slider__control', {disabled: !isAnimatable})}
-  >
-    <ButtonGroup>
-      <IconButton className="playback-control-button"
-        onClick={resetAnimation} secondary>
-        <Reset height="12px"/>
-      </IconButton>
-      <IconButton className={classnames('playback-control-button', {active: isAnimating})}
-        onClick={isAnimating ? pauseAnimation : startAnimation} secondary>
-        {isAnimating ? <Pause height="12px"/> : <Play height="12px"/>}
-      </IconButton>
-    </ButtonGroup>
-  </StyledAnimationControls>
+	<StyledAnimationControls
+		className={classnames("time-range-slider__control", { disabled: !isAnimatable })}
+	>
+		<ButtonGroup>
+			<IconButton className="playback-control-button" onClick={resetAnimation} secondary>
+				<Reset height="12px" />
+			</IconButton>
+			<IconButton
+				className={classnames("playback-control-button", { active: isAnimating })}
+				onClick={isAnimating ? pauseAnimation : startAnimation}
+				secondary
+			>
+				{isAnimating ? <Pause height="12px" /> : <Play height="12px" />}
+			</IconButton>
+		</ButtonGroup>
+	</StyledAnimationControls>
 );
